@@ -2,11 +2,15 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, request, jsonify, url_for, send_from_directory
 from flask_migrate import Migrate
 from flask_swagger import swagger
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 from api.utils import APIException, generate_sitemap
-from api.models import db
+from api.db import db
 from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
@@ -28,8 +32,23 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "super-secret-key")
+print("🔐 JWT_SECRET_KEY =", app.config['JWT_SECRET_KEY'])
+
 MIGRATE = Migrate(app, db, compare_type=True)
 db.init_app(app)
+jwt = JWTManager(app)
+CORS(app, supports_credentials=True, origins="https://effective-telegram-5g4v7qgpg4jphvp5r-3000.app.github.dev")
+
+#@jwt.invalid_token_loader
+#def invalid_token_callback(reason):
+#    print("Invalid token:", reason)
+#    return jsonify({"error": "Token inválido", "reason": reason}), 422
+
+#@jwt.unauthorized_loader
+#def unauthorized_callback(reason):
+#    return jsonify({"error": "Token no enviado", "reason": reason}), 401
+
 
 # add the admin
 setup_admin(app)

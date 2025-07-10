@@ -54,17 +54,20 @@ def login():
     if not user or not user.check_password(data["password"]):
         return jsonify({"error": "Invalid credentials"}), 401
 
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return jsonify({"token": token}), 200
 
 @api.route('/private', methods=['GET'])
 @jwt_required()
 def private():
     current_user_id = get_jwt_identity()
-    if not current_user_id:
-        return jsonify({"error": "Token inválido"}), 422
 
-    user = User.query.get(current_user_id)
+    try:
+        user_id = int(current_user_id)
+    except ValueError:
+        return jsonify({"error": "Invalid user ID format"}), 422
+
+    user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
 
